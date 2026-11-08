@@ -687,11 +687,30 @@ func handleChannelDelete(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// startBackgroundRecheck runs checkAllStaleChannels on a recurring ticker so
+// channels' live status is kept fresh even if nobody has the /show page
+// open to trigger a client-side recheck.
+func startBackgroundRecheck() {
+	go func() {
+		ticker := time.NewTicker(checkInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			if results, err := checkAllStaleChannels(); err != nil {
+				log.Printf("background recheck failed: %v", err)
+			} else if len(results) > 0 {
+				log.Printf("background recheck updated %d channel(s)", len(results))
+			}
+		}
+	}()
+}
+
 func main() {
 	if err := initDB(); err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	startBackgroundRecheck()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/check_all", handleCheckAll)
