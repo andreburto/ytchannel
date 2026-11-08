@@ -11,7 +11,9 @@ CONTAINER_DB_PATH="/app/channel.db"
 
 # Make sure the DB file exists on the host before mounting it, otherwise
 # Docker will create a directory in its place.
-touch "$HOST_DB_FILE"
+if [[ ! -f "$HOST_DB_FILE" ]]; then
+  touch "$HOST_DB_FILE"
+fi
 
 # Keep a single backup of the DB, overwriting any previous backup.
 cp -f "$HOST_DB_FILE" "$HOST_DB_BACKUP"
